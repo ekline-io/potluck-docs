@@ -89,7 +89,7 @@ npm create astro@latest -- \
 | Add a new page | Create a `.md` or `.mdx` file under `src/content/docs/` — see [Writing content](https://potluck.ekline.io/writing-content/) |
 | **Private / per-org pages** | `src/content/private-docs/`, `src/content/org-docs/<org>/` — see [Writing private and per-org content](https://potluck.ekline.io/private-content/) |
 | Logo, favicon | `public/favicon.svg`, plus the `logo` field in `astro.config.mjs` |
-| Footer credit | `src/components/CustomFooter.astro` |
+| Footer credit | `src/components/CustomFooter.astro` — it loads EkLine's hosted credit from `ekline.io`; see [the credit's documentation](https://docs.ekline.io/credit/) |
 
 For a walkthrough of each setting, see the [hosted docs](https://potluck.ekline.io). For anything not covered there, check the [Starlight docs](https://starlight.astro.build/) — the source of truth for sidebar groups, component overrides, content collection schema, i18n, and more.
 
