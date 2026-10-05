@@ -8,6 +8,49 @@ The template is something you fork rather than install, so a new version is not
 something you upgrade into. Use these notes to decide whether a change is worth
 pulling across into a site you have already customised.
 
+## 2.7.0
+
+### The footer credit now comes from EkLine's hosted script
+
+`src/components/CustomFooter.astro` no longer holds the credit's words and
+mark. It renders an `<ekline-credit>` element and loads
+`https://ekline.io/v1/credit.js`, which fills the element in. The credit's
+wording and mark now follow EkLine's current credit, so a change to either
+reaches your site without a template release and without an edit on your side.
+2.6.2 said the footer credit was unchanged; this is the release where it
+changes. The script and what it renders are documented at
+<https://docs.ekline.io/credit/>.
+
+**What it adds to your site:** each page load requests one script from
+`ekline.io`, about 4 KB before compression. The script sets no cookies, stores
+nothing in the browser and makes no requests of its own. The host that serves
+it sees what any static file host sees — the IP address, the user agent and
+the referrer. It is loaded without an integrity hash, because it is meant to
+change in place, and it is served unminified so you can read what runs.
+
+**The credit needs JavaScript and that request.** With JavaScript off, or with
+the request blocked, the credit is not shown and only the divider above it
+remains. Nothing else on the page depends on it.
+
+**If you set a Content-Security-Policy,** allow `https://ekline.io` in
+`script-src`, or the credit renders empty. The template sets no policy, so
+this applies only if you added one.
+
+**It looks slightly different.** "EkLine" is semibold where it was regular
+weight, and the mark is 13px where it was 16px. The divider, the spacing above
+it and the text colour are the same. The component dims itself to 85% by
+default, which is what 1.0.0 removed from this footer for legibility, so the
+file sets it back to full opacity; with the default palette the credit
+measures 4.76:1 in light and 6.78:1 in dark.
+
+**What to pull across:** `src/components/CustomFooter.astro`. Then delete
+`src/assets/ekline-mark.svg` unless something of yours uses it — the footer
+was the only file here that did.
+
+**If you changed or removed the footer credit,** nothing changes for you until
+you pull that file across. To keep the credit as plain markup with no script,
+keep the file you have.
+
 ## 2.6.3
 
 ### The repository moved to `ekline-io/potluck-docs`
