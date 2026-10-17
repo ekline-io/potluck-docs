@@ -246,6 +246,17 @@ test('falls back to frontmatter and warns once when the site is not in a git rep
 	assert.equal(warnings.length, 1);
 });
 
+gitTest("the warning outside a git repository gives git's reason, not the command that failed", () => {
+	const siteRoot = makeTempDir();
+	writePage(siteRoot, 'page.md');
+	const warnings = [];
+
+	createLastmodLookup({ siteRoot, warn: (message) => warnings.push(message) });
+
+	assert.match(warnings[0] ?? '', /not a git repository/);
+	assert.doesNotMatch(warnings[0] ?? '', /Command failed/);
+});
+
 gitTest('fails, naming the file, when lastUpdated is neither a date nor a boolean', () => {
 	const repo = createRepo();
 	writePage(repo, 'broken.md', "lastUpdated: 'last Tuesday'");
@@ -262,6 +273,15 @@ gitTest('fails, naming the line, when the skip file holds something other than a
 	writeFileSync(join(repo, SKIP_FILE_NAME), `${sha.slice(0, 9)}\n`);
 
 	assert.throws(() => lookupFor(repo), /line 1/);
+});
+
+// `@astrojs/sitemap` catches anything `serialize` throws, logs it, and writes no sitemap while the build passes.
+test('the sitemap serializer rejects a bad skip file when it is created, before the sitemap is written', () => {
+	const siteRoot = makeTempDir();
+	writePage(siteRoot, 'page.md');
+	writeFileSync(join(siteRoot, SKIP_FILE_NAME), 'abc1234\n');
+
+	assert.throws(() => createSitemapSerializer({ siteRoot, warn: silent }), /line 1/);
 });
 
 gitTest('the sitemap serializer adds lastmod to docs pages and leaves other entries alone', async () => {

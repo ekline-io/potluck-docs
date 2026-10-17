@@ -78,8 +78,21 @@ has the full workflow and the three secrets it needs. The build steps are:
 - run: npx vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
 ```
 
-Preview deployments from Vercel's own Git builds still work. They just have no
-git dates, and their build log shows the warning.
+Then stop Vercel's own Git builds from deploying your production branch.
+Otherwise every push deploys twice, and whichever build finishes last goes
+live — possibly the one without dates. In `vercel.json`, with your production
+branch's name:
+
+```json
+{
+  "git": {
+    "deploymentEnabled": { "main": false }
+  }
+}
+```
+
+Other branches still get preview deployments from Vercel. Those have no git
+dates, and their build log shows the warning.
 
 ## Check that it worked
 
@@ -94,10 +107,12 @@ git dates, and their build log shows the warning.
 3. Count the dated pages in the sitemap the build wrote:
 
    ```sh
-   grep -c '<lastmod>' dist/client/sitemap-0.xml
+   grep -o '<lastmod>' dist/client/sitemap-0.xml | wc -l
    ```
 
-   On Vercel, the same file is in `.vercel/output/static/`.
+   The sitemap is written on a single line, so this counts matches, not lines.
+   On Vercel, the same file is in `.vercel/output/static/`. If you removed the
+   logged-in experience, the build is static-only and the file is in `dist/`.
 
 `npm test` also checks the result once dates are on: that every page is in
 the sitemap at the address its file maps to, and that each entry carries the
@@ -142,8 +157,9 @@ to `astro.config.mjs`:
 One full 40-character commit hash per line; `#` starts a comment. `git log
 --oneline` shows short hashes — `git rev-parse <short hash>` prints the full
 one. If your team squash-merges pull requests, use the hash of the commit on
-your main branch, not the one on the pull request's branch. Leave the file out
-and no commit is skipped.
+your main branch, not the one on the pull request's branch. If you merge with
+merge commits, list the commit that changed the pages, not the merge commit.
+Leave the file out and no commit is skipped.
 
 Keep real changes out of this file. A fix to the content, a new link or a new
 image is an update, and search engines should hear about it.
@@ -167,15 +183,15 @@ serialize: createSitemapSerializer({
 }),
 ```
 
-Leave it out on a site with `base` and pages get no dates — nothing breaks,
-and nothing gets a wrong one.
+Leave it out on a site with `base` and no page gets a date, and `npm test`
+fails, listing each sitemap entry that should have one.
 
 ## How each page's date is chosen
 
 | Order | Source | Notes |
 | --- | --- | --- |
 | 1 | `lastUpdated` in the page's frontmatter | Only a date counts; `true` and `false` are skipped. |
-| 2 | The last commit that added or changed the page's file | The date the commit landed on the branch you build. Commits in `.sitemap-lastmod-ignore-revs` don't count. Skipped entirely when the build can't use git. |
+| 2 | The last commit that added or changed the page's file | That commit's own date. With squash or rebase merges, that's when the change reached your main branch; with merge commits, it's when the change was committed on its branch. Commits in `.sitemap-lastmod-ignore-revs` don't count. Skipped entirely when the build can't use git. |
 | 3 | Nothing | The entry has no `<lastmod>`. |
 
 | Setting | Where | Leave it alone and… |
@@ -183,7 +199,7 @@ and nothing gets a wrong one.
 | `lastmodFromGit` | `src/config/sitemap.mjs` | `false`: no page gets a date, and git never runs. |
 | `lastUpdated` | A page's frontmatter | The page is dated from git. |
 | `.sitemap-lastmod-ignore-revs` | Next to `astro.config.mjs` | Every commit counts. |
-| `base` | The `createSitemapSerializer` call in `astro.config.mjs` | Fine unless your site sets `base`; then pages get no dates. |
+| `base` | The `createSitemapSerializer` call in `astro.config.mjs` | Fine unless your site sets `base`; then pages get no dates and `npm test` fails. |
 
 ## Messages
 
@@ -193,9 +209,13 @@ These appear in the build output.
 | --- | --- | --- |
 | `Not using git dates for lastmod: the checkout is a shallow clone.` | The build saw only recent commits. | [Give your build your git history](#give-your-build-your-git-history). Until then, only pages with `lastUpdated` get a date. |
 | `Not using git dates for lastmod: the repository has no commits yet.` | You're building a new site before its first commit. | Commit your files, then build again. |
-| `Not using git dates for lastmod: git history is not available (…)` | Git isn't installed where the build runs, or the site isn't in a repository. | Build from a clone of your repository, on a machine with git. |
-| `lastUpdated in src/content/docs/….md is not a date: "…"` | That page's `lastUpdated` isn't a date. **The build stops.** | Use a date such as `2026-03-01`, or delete the line. |
+| `Not using git dates for lastmod: git history is not available (…)` | Git isn't installed where the build runs (the brackets say `spawnSync git ENOENT`), or the site isn't in a repository (`fatal: not a git repository`). | Build from a clone of your repository, on a machine with git. |
 | `.sitemap-lastmod-ignore-revs line 3: expected a full 40-character commit hash, got "…"` | That line holds a short hash or a typo. **The build stops.** | Replace it with the full hash from `git rev-parse`. |
 
-Every message starts with `[sitemap]`. The first three are warnings: the
+Each of these starts with `[sitemap]`. The first three are warnings: the
 build carries on and dates only the pages that set `lastUpdated`.
+
+A `lastUpdated` that isn't a date stops the build before the sitemap is
+written. Starlight reports it as `InvalidContentEntryDataError`, naming the
+page, with `lastUpdated: Did not match union`. Use a date such as
+`2026-03-01`, or delete the line.

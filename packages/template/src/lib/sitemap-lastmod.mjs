@@ -138,8 +138,10 @@ const gitHistoryUnavailableReason = (siteRoot) => {
 	try {
 		isShallow = runGit(siteRoot, ['rev-parse', '--is-shallow-repository']).trim() === 'true';
 	} catch (err) {
-		const message = err instanceof Error ? err.message.split('\n')[0] : String(err);
-		return `git history is not available (${message})`;
+		// git's own reason ("fatal: not a git repository…") is on stderr; without git there is only the spawn error.
+		const stderr = err && typeof err === 'object' && 'stderr' in err && err.stderr ? String(err.stderr).trim() : '';
+		const message = stderr || (err instanceof Error ? err.message : String(err));
+		return `git history is not available (${message.split('\n')[0]})`;
 	}
 	if (isShallow) return 'the checkout is a shallow clone';
 	try {
@@ -242,13 +244,18 @@ const readContentPages = (siteRoot) => {
 export const contentRoutes = (siteRoot) => new Map(readContentPages(siteRoot).map(({ route, file }) => [route, file]));
 
 /**
- * @param {object} options
- * @param {string} options.siteRoot The directory holding `src/content/docs/`.
- * @param {(message: string) => void} options.warn Called once when git history cannot be used.
- * @param {string} [options.base] Astro's `base`, when the site sets one.
- * @returns {(pathname: string) => string | undefined} The `<lastmod>` for a sitemap URL's path.
+ * @typedef {object} LookupOptions
+ * @property {string} siteRoot The directory holding `src/content/docs/`.
+ * @property {(message: string) => void} warn Called once when git history cannot be used.
+ * @property {string} [base] Astro's `base`, when the site sets one.
  */
-export const createLastmodLookup = ({ siteRoot, warn, base = '/' }) => {
+
+/**
+ * @param {LookupOptions} options
+ * @param {Set<string>} skippedCommits
+ * @returns {(pathname: string) => string | undefined}
+ */
+const buildLastmodLookup = ({ siteRoot, warn, base = '/' }, skippedCommits) => {
 	const historyUnavailable = gitHistoryUnavailableReason(siteRoot);
 	if (historyUnavailable) {
 		warn(
@@ -256,8 +263,6 @@ export const createLastmodLookup = ({ siteRoot, warn, base = '/' }) => {
 		);
 	}
 
-	// Read even when git is unavailable, so a broken skip file fails every build, not only full-history ones.
-	const skippedCommits = readSkippedCommits(siteRoot);
 	const lastCommitDates = historyUnavailable ? new Map() : readLastCommitDates(siteRoot, skippedCommits);
 
 	const lastmodByRoute = new Map(
@@ -280,20 +285,29 @@ export const createLastmodLookup = ({ siteRoot, warn, base = '/' }) => {
 };
 
 /**
- * A `serialize` hook for `@astrojs/sitemap`. Git runs on the first entry, not
- * when `astro.config.mjs` loads, so `astro dev` never pays for it.
+ * The skip file is read even when git is unavailable, so a broken one fails
+ * every build, not only full-history ones.
  *
- * @param {object} options
- * @param {string} options.siteRoot
- * @param {(message: string) => void} options.warn
- * @param {string} [options.base]
+ * @param {LookupOptions} options
+ * @returns {(pathname: string) => string | undefined} The `<lastmod>` for a sitemap URL's path.
+ */
+export const createLastmodLookup = (options) => buildLastmodLookup(options, readSkippedCommits(options.siteRoot));
+
+/**
+ * A `serialize` hook for `@astrojs/sitemap`. Git runs on the first entry, not
+ * when `astro.config.mjs` loads, so `astro dev` never pays for it. The skip
+ * file is checked when it loads: `@astrojs/sitemap` catches anything
+ * `serialize` throws and skips writing the sitemap while the build passes.
+ *
+ * @param {LookupOptions} options
  * @returns {(item: { url: string, lastmod?: string }) => { url: string, lastmod?: string }}
  */
 export const createSitemapSerializer = (options) => {
+	const skippedCommits = readSkippedCommits(options.siteRoot);
 	/** @type {((pathname: string) => string | undefined) | undefined} */
 	let lookup;
 	return (item) => {
-		lookup ??= createLastmodLookup(options);
+		lookup ??= buildLastmodLookup(options, skippedCommits);
 		const lastmod = lookup(new URL(item.url).pathname);
 		return lastmod ? { ...item, lastmod } : item;
 	};

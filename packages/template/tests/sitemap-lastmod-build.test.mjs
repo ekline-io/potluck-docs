@@ -16,7 +16,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -36,6 +36,15 @@ const sitemapEntries = readdirSync(STATIC)
 		})),
 	);
 
+// Astro's `base`, read from where `@astrojs/sitemap` lists each sitemap file, the one place the build records it.
+const readSitemapBase = () => {
+	const index = join(STATIC, 'sitemap-index.xml');
+	const loc = existsSync(index) ? /<loc>([^<]*)<\/loc>/.exec(readFileSync(index, 'utf8'))?.[1] : undefined;
+	return loc ? new URL(loc).pathname.replace(/[^/]*$/, '') : '/';
+};
+const BASE = readSitemapBase();
+const withBase = (route) => `${BASE.replace(/\/+$/, '')}${route}`;
+
 // `@astrojs/sitemap` leaves out the 404 page, and production builds leave out drafts.
 const isPublishedInSitemap = (route, file) => {
 	const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---/.exec(readFileSync(join(ROOT, file), 'utf8'))?.[1] ?? '';
@@ -46,15 +55,15 @@ test('every published docs page is in the sitemap at the path the resolver compu
 	const sitemapPaths = new Set(sitemapEntries.map((entry) => entry.path));
 	const missing = [...contentRoutes(ROOT)]
 		.filter(([route, file]) => isPublishedInSitemap(route, file))
-		.filter(([route]) => !sitemapPaths.has(route))
-		.map(([route, file]) => `${route} (${file})`);
+		.filter(([route]) => !sitemapPaths.has(withBase(route)))
+		.map(([route, file]) => `${withBase(route)} (${file})`);
 
 	assert.ok(sitemapEntries.length > 0, 'no sitemap entries found; did the build run?');
 	assert.deepEqual(missing, []);
 });
 
 test('the sitemap carries the dates the resolver gives', { skip: !lastmodFromGit && 'lastmodFromGit is off' }, () => {
-	const lookup = createLastmodLookup({ siteRoot: ROOT, warn: () => {} });
+	const lookup = createLastmodLookup({ siteRoot: ROOT, warn: () => {}, base: BASE });
 	const mismatches = sitemapEntries
 		.filter((entry) => entry.lastmod !== lookup(entry.path))
 		.map((entry) => `${entry.path}: sitemap ${entry.lastmod}, resolver ${lookup(entry.path)}`);
