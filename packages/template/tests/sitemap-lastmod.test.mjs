@@ -100,6 +100,17 @@ test('prefers a lastUpdated date in frontmatter over git history', () => {
 	assert.equal(lookupFor(repo)('/guides/setup/'), '2026-01-05T00:00:00.000Z');
 });
 
+test('reads a lastUpdated date followed by a YAML comment, as YAML does', () => {
+	const repo = createRepo();
+	writePage(repo, 'plain.md', 'lastUpdated: 2026-01-05 # reviewed after launch');
+	writePage(repo, 'quoted.md', "lastUpdated: '2026-01-06' # quoted, then a comment");
+	commit(repo, 'Add pages', '2026-05-01T12:00:00Z');
+	const lookup = lookupFor(repo);
+
+	assert.equal(lookup('/plain/'), '2026-01-05T00:00:00.000Z');
+	assert.equal(lookup('/quoted/'), '2026-01-06T00:00:00.000Z');
+});
+
 test('ignores lastUpdated: true and false, which only toggle Starlight\'s footer date', () => {
 	const repo = createRepo();
 	writePage(repo, 'on.md', 'lastUpdated: true');

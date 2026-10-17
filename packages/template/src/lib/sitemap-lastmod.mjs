@@ -60,8 +60,11 @@ const slugifySegment = (segment) =>
 const readFrontmatter = (text) => {
 	const block = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text)?.[1] ?? '';
 	const value = (key) => {
-		const match = new RegExp(`^${key}:[ \\t]*(.*?)[ \\t]*$`, 'm').exec(block)?.[1];
-		return match ? match.replace(/^(['"])(.*)\1$/, '$2') : undefined;
+		const raw = new RegExp(`^${key}:[ \\t]*(.*?)[ \\t]*$`, 'm').exec(block)?.[1];
+		if (!raw) return undefined;
+		// A quoted scalar ends at its closing quote; an unquoted one at ` #`, where a YAML comment starts.
+		const quoted = /^(['"])(.*?)\1(?:\s+#.*)?$/.exec(raw);
+		return quoted ? quoted[2] : raw.replace(/\s+#.*$/, '');
 	};
 	return { lastUpdated: value('lastUpdated'), slug: value('slug') };
 };
@@ -211,20 +214,25 @@ const readLastCommitDates = (siteRoot, skippedCommits) => {
 };
 
 /**
+ * @param {string} siteRoot
+ * @returns {Array<{ route: string, file: string, lastUpdated?: string }>} One entry per docs page,
+ *   with `file` relative to the site root. Each file is read once.
+ */
+const readContentPages = (siteRoot) => {
+	const contentDirectory = join(siteRoot, CONTENT_DIRECTORY);
+	return listContentFiles(contentDirectory).map((contentPath) => {
+		const { slug, lastUpdated } = readFrontmatter(readFileSync(join(contentDirectory, contentPath), 'utf8'));
+		return { route: routeFor(contentPath, slug), file: posix.join(CONTENT_DIRECTORY, contentPath), lastUpdated };
+	});
+};
+
+/**
  * Every docs page's path, mapped to its source file relative to the site root.
  *
  * @param {string} siteRoot
  * @returns {Map<string, string>}
  */
-export const contentRoutes = (siteRoot) => {
-	const contentDirectory = join(siteRoot, CONTENT_DIRECTORY);
-	return new Map(
-		listContentFiles(contentDirectory).map((contentPath) => {
-			const { slug } = readFrontmatter(readFileSync(join(contentDirectory, contentPath), 'utf8'));
-			return [routeFor(contentPath, slug), posix.join(CONTENT_DIRECTORY, contentPath)];
-		}),
-	);
-};
+export const contentRoutes = (siteRoot) => new Map(readContentPages(siteRoot).map(({ route, file }) => [route, file]));
 
 /**
  * @param {object} options
@@ -246,8 +254,7 @@ export const createLastmodLookup = ({ siteRoot, warn, base = '/' }) => {
 	const lastCommitDates = historyUnavailable ? new Map() : readLastCommitDates(siteRoot, skippedCommits);
 
 	const lastmodByRoute = new Map(
-		[...contentRoutes(siteRoot)].map(([route, file]) => {
-			const { lastUpdated } = readFrontmatter(readFileSync(join(siteRoot, file), 'utf8'));
+		readContentPages(siteRoot).map(({ route, file, lastUpdated }) => {
 			// `true` and `false` only switch Starlight's footer date on or off.
 			const frontmatterDate =
 				lastUpdated && lastUpdated !== 'true' && lastUpdated !== 'false'

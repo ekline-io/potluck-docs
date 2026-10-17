@@ -37,8 +37,10 @@ const sitemapEntries = readdirSync(STATIC)
 	);
 
 // `@astrojs/sitemap` leaves out the 404 page, and production builds leave out drafts.
-const isPublishedInSitemap = (route, file) =>
-	route !== '/404/' && !/^draft:\s*true\s*$/m.test(readFileSync(join(ROOT, file), 'utf8'));
+const isPublishedInSitemap = (route, file) => {
+	const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---/.exec(readFileSync(join(ROOT, file), 'utf8'))?.[1] ?? '';
+	return route !== '/404/' && !/^draft:[ \t]*true[ \t]*(?:#.*)?$/m.test(frontmatter);
+};
 
 test('every published docs page is in the sitemap at the path the resolver computes for it', () => {
 	const sitemapPaths = new Set(sitemapEntries.map((entry) => entry.path));
