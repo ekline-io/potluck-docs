@@ -8,6 +8,39 @@ The template is something you fork rather than install, so a new version is not
 something you upgrade into. Use these notes to decide whether a change is worth
 pulling across into a site you have already customised.
 
+## 2.8.0
+
+### Sitemap entries get a `<lastmod>` from each page's git history
+
+Your sitemap used to list every page with no `<lastmod>`. Each docs page now
+gets one: its `lastUpdated` frontmatter when that holds a date, otherwise the
+date of the last commit that changed its file. A page with neither still gets
+none, so nothing guesses a date. Search engines use `<lastmod>` to decide what
+to recrawl, and only while the dates match real changes.
+
+**It needs your build to see git history.** On a shallow clone, which many CI
+systems make by default and Vercel's Git integration always does, the build
+prints one warning and uses frontmatter dates only. The build still passes.
+On GitHub Actions, set `fetch-depth: 0` on `actions/checkout`. See
+<https://potluck.ekline.io/deploy/#sitemap-dates>.
+
+**A formatting pass across many pages** would date them all to that day. List
+its full commit hash in a `.sitemap-lastmod-ignore-revs` file at your site's
+root and the sitemap skips it.
+
+**What it adds to your build:** one `git log` over `src/content/docs/`. A
+`lastUpdated` value that is not a date, or a line in the skip file that is not
+a full commit hash, fails the build and names the file or line.
+
+**What to pull across:** `src/lib/sitemap-lastmod.mjs`,
+`src/config/sitemap.mjs`, `tests/sitemap-lastmod.test.mjs`,
+`tests/sitemap-lastmod-build.test.mjs`, and in `astro.config.mjs` the two new
+imports plus the `serialize` entry in the `sitemap()` call. If you set `base`,
+pass it to `createSitemapSerializer` too.
+
+**To leave it off,** set `lastmodFromGit` to `false` in
+`src/config/sitemap.mjs`, or do not pull the change across.
+
 ## 2.7.0
 
 ### The footer credit now comes from EkLine's hosted script

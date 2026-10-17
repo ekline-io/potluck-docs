@@ -1,4 +1,5 @@
 // @ts-check
+import { fileURLToPath } from 'node:url';
 import { defineConfig, envField } from 'astro/config';
 import { loadEnv } from 'vite';
 import node from '@astrojs/node';
@@ -16,6 +17,8 @@ import {
 	routeFor,
 } from './src/config/api-reference.mjs';
 import { docsSidebarGroups, changelogEntry, privateDocsLink } from './src/config/sidebar.mjs';
+import { lastmodFromGit } from './src/config/sitemap.mjs';
+import { createSitemapSerializer } from './src/lib/sitemap-lastmod.mjs';
 import vercelMarkdownNegotiation from './src/lib/vercel-markdown-negotiation.mjs';
 
 // Is signing in configured for this deployment?
@@ -165,6 +168,17 @@ export default defineConfig({
 				const { pathname } = new URL(page);
 				return !pathname.includes('/private/') && !/\/demo-login\/?$/.test(pathname);
 			},
+			// Each docs page's `<lastmod>`, from its `lastUpdated` frontmatter or its
+			// git history; `src/config/sitemap.mjs` switches it off. Pass `base` here
+			// if you set one above, so sitemap URLs map back to their pages.
+			...(lastmodFromGit
+				? {
+						serialize: createSitemapSerializer({
+							siteRoot: fileURLToPath(new URL('.', import.meta.url)),
+							warn: (message) => console.warn(message),
+						}),
+					}
+				: {}),
 		}),
 		starlight({
 			title: 'My Docs',

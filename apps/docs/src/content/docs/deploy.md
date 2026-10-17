@@ -92,3 +92,32 @@ isn't a route onto a static-only host — `astro.config.mjs` picks an adapter
 regardless of whether these variables are set. Removing the feature, not
 leaving it unconfigured, is what gets you a static-only build.
 :::
+
+## Sitemap dates
+
+The sitemap gives each docs page a `<lastmod>`, which search engines use to
+decide what to recrawl. It is the page's `lastUpdated` frontmatter when that
+holds a date, otherwise the date of the last commit that changed the page's
+file. A page with neither gets no `<lastmod>`: a missing date is better than
+a wrong one, and search engines stop trusting dates that claim changes that
+did not happen.
+
+Git dates need the build to see your repository's history:
+
+- **GitHub Actions:** set `fetch-depth: 0` on `actions/checkout`. Adding
+  `filter: blob:none` downloads every commit but only the current files.
+- **Vercel's Git integration** builds from a shallow clone, so pages get
+  frontmatter dates only. To get git dates on Vercel, build in your own CI
+  with full history and deploy the output with `vercel deploy --prebuilt`.
+- **Anywhere else**, the build log tells you. A shallow checkout prints
+  `[sitemap] Not using git dates for lastmod: the checkout is a shallow clone.`
+
+A commit that changes many pages without changing what they say, such as a
+formatting pass, would date them all to that day. Put its full commit hash in
+`.sitemap-lastmod-ignore-revs` at the root of your site, one per line, with
+`#` for comments, and the sitemap skips it.
+
+To leave `<lastmod>` out of the sitemap entirely, set `lastmodFromGit` to
+`false` in `src/config/sitemap.mjs`. If you set `base` in `astro.config.mjs`,
+pass the same value to `createSitemapSerializer` in its `sitemap()` block, so
+sitemap URLs map back to their pages.
