@@ -25,7 +25,7 @@ recrawl, and only while the dates match real changes.
 systems make by default and Vercel's Git integration always does, the build
 prints one warning and uses frontmatter dates only. The build still passes.
 On GitHub Actions, set `fetch-depth: 0` on `actions/checkout`. See
-<https://potluck.ekline.io/deploy/#sitemap-dates>.
+<https://potluck.ekline.io/sitemap/>.
 
 **A formatting pass across many pages** would date them all to that day. List
 its full commit hash in a `.sitemap-lastmod-ignore-revs` file at your site's
