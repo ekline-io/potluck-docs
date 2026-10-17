@@ -10,13 +10,16 @@ pulling across into a site you have already customised.
 
 ## 2.8.0
 
-### Sitemap entries get a `<lastmod>` from each page's git history
+### Sitemap entries can get a `<lastmod>` from each page's git history
 
-Your sitemap used to list every page with no `<lastmod>`. Each docs page now
-gets one: its `lastUpdated` frontmatter when that holds a date, otherwise the
-date of the last commit that changed its file. A page with neither still gets
-none, so nothing guesses a date. Search engines use `<lastmod>` to decide what
-to recrawl, and only while the dates match real changes.
+Your sitemap lists every page with no `<lastmod>`. Set `lastmodFromGit` to
+`true` in the new `src/config/sitemap.mjs`, and each docs page gets one: its
+`lastUpdated` frontmatter when that holds a date, otherwise the date of the
+last commit that changed its file. A page with neither still gets none, so
+nothing guesses a date. Search engines use `<lastmod>` to decide what to
+recrawl, and only while the dates match real changes.
+
+**It is off by default**, so nothing changes until you switch it on.
 
 **It needs your build to see git history.** On a shallow clone, which many CI
 systems make by default and Vercel's Git integration always does, the build
@@ -37,9 +40,6 @@ a full commit hash, fails the build and names the file or line.
 `tests/sitemap-lastmod-build.test.mjs`, and in `astro.config.mjs` the two new
 imports plus the `serialize` entry in the `sitemap()` call. If you set `base`,
 pass it to `createSitemapSerializer` too.
-
-**To leave it off,** set `lastmodFromGit` to `false` in
-`src/config/sitemap.mjs`, or do not pull the change across.
 
 ## 2.7.0
 

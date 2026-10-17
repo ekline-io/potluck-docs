@@ -8,9 +8,8 @@
  * changes that did not happen, so a page with no usable history gets no date
  * rather than a guessed one.
  *
- * It needs your build to see the repository's history. On a shallow clone,
- * which many CI systems and hosts make by default, the build logs one warning
- * and only frontmatter dates are used. Set this to `false` to leave
- * `<lastmod>` out entirely.
+ * Off by default. Set this to `true` once your build can see the repository's
+ * history: on a shallow clone, which many CI systems and hosts make by
+ * default, the build logs one warning and only frontmatter dates are used.
  */
-export const lastmodFromGit = true;
+export const lastmodFromGit = false;

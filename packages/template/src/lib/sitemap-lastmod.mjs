@@ -128,6 +128,7 @@ const runGit = (siteRoot, args) =>
 /**
  * A shallow clone holds one or a few commits, so every file's "last commit" is
  * one of those, and every page would share the date of the commit being built.
+ * A repository with no commits yet makes `git log` fail outright.
  *
  * @param {string} siteRoot
  * @returns {string | undefined} Why git history cannot be used, or undefined when it can.
@@ -140,7 +141,13 @@ const gitHistoryUnavailableReason = (siteRoot) => {
 		const message = err instanceof Error ? err.message.split('\n')[0] : String(err);
 		return `git history is not available (${message})`;
 	}
-	return isShallow ? 'the checkout is a shallow clone' : undefined;
+	if (isShallow) return 'the checkout is a shallow clone';
+	try {
+		runGit(siteRoot, ['rev-parse', '--verify', '--quiet', 'HEAD']);
+	} catch {
+		return 'the repository has no commits yet';
+	}
+	return undefined;
 };
 
 /**

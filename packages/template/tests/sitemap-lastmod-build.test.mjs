@@ -42,7 +42,7 @@ const isPublishedInSitemap = (route, file) => {
 	return route !== '/404/' && !/^draft:[ \t]*true[ \t]*(?:#.*)?$/m.test(frontmatter);
 };
 
-test('every published docs page is in the sitemap at the path the resolver computes for it', () => {
+test('every published docs page is in the sitemap at the path the resolver computes for it', { skip: !lastmodFromGit && 'lastmodFromGit is off' }, () => {
 	const sitemapPaths = new Set(sitemapEntries.map((entry) => entry.path));
 	const missing = [...contentRoutes(ROOT)]
 		.filter(([route, file]) => isPublishedInSitemap(route, file))

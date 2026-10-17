@@ -12,7 +12,7 @@
  */
 import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -24,6 +24,10 @@ import {
 } from '../src/lib/sitemap-lastmod.mjs';
 
 const tempDirs = [];
+
+// These build real repositories. Without git on the machine the feature itself falls back, so only the tests skip.
+const NO_GIT = spawnSync('git', ['--version']).status !== 0 && 'git is not installed';
+const gitTest = (name, fn) => test(name, { skip: NO_GIT }, fn);
 
 afterEach(() => {
 	for (const dir of tempDirs.splice(0)) rmSync(dir, { recursive: true, force: true });
@@ -74,7 +78,7 @@ const silent = () => {};
 
 const lookupFor = (siteRoot, options = {}) => createLastmodLookup({ siteRoot, warn: silent, ...options });
 
-test('dates a page from the last commit that changed its file', () => {
+gitTest('dates a page from the last commit that changed its file', () => {
 	const repo = createRepo();
 	writePage(repo, 'guides/setup.md');
 	commit(repo, 'Add setup guide', '2026-01-10T09:00:00-07:00');
@@ -84,7 +88,7 @@ test('dates a page from the last commit that changed its file', () => {
 	assert.equal(lookupFor(repo)('/guides/setup/'), '2026-02-20T17:00:00.000Z');
 });
 
-test('counts the commit that added a page, since docs pages carry no publish date', () => {
+gitTest('counts the commit that added a page, since docs pages carry no publish date', () => {
 	const repo = createRepo();
 	writePage(repo, 'guides/setup.md');
 	commit(repo, 'Add setup guide', '2026-03-03T08:00:00Z');
@@ -92,7 +96,7 @@ test('counts the commit that added a page, since docs pages carry no publish dat
 	assert.equal(lookupFor(repo)('/guides/setup/'), '2026-03-03T08:00:00.000Z');
 });
 
-test('prefers a lastUpdated date in frontmatter over git history', () => {
+gitTest('prefers a lastUpdated date in frontmatter over git history', () => {
 	const repo = createRepo();
 	writePage(repo, 'guides/setup.md', 'lastUpdated: 2026-01-05');
 	commit(repo, 'Add setup guide', '2026-05-01T12:00:00Z');
@@ -100,7 +104,7 @@ test('prefers a lastUpdated date in frontmatter over git history', () => {
 	assert.equal(lookupFor(repo)('/guides/setup/'), '2026-01-05T00:00:00.000Z');
 });
 
-test('reads a lastUpdated date followed by a YAML comment, as YAML does', () => {
+gitTest('reads a lastUpdated date followed by a YAML comment, as YAML does', () => {
 	const repo = createRepo();
 	writePage(repo, 'plain.md', 'lastUpdated: 2026-01-05 # reviewed after launch');
 	writePage(repo, 'quoted.md', "lastUpdated: '2026-01-06' # quoted, then a comment");
@@ -111,7 +115,7 @@ test('reads a lastUpdated date followed by a YAML comment, as YAML does', () => 
 	assert.equal(lookup('/quoted/'), '2026-01-06T00:00:00.000Z');
 });
 
-test('ignores lastUpdated: true and false, which only toggle Starlight\'s footer date', () => {
+gitTest('ignores lastUpdated: true and false, which only toggle Starlight\'s footer date', () => {
 	const repo = createRepo();
 	writePage(repo, 'on.md', 'lastUpdated: true');
 	writePage(repo, 'off.md', 'lastUpdated: false');
@@ -122,7 +126,7 @@ test('ignores lastUpdated: true and false, which only toggle Starlight\'s footer
 	assert.equal(lookup('/off/'), '2026-05-01T12:00:00.000Z');
 });
 
-test('skips commits listed in the skip file', () => {
+gitTest('skips commits listed in the skip file', () => {
 	const repo = createRepo();
 	writePage(repo, 'guides/setup.md');
 	commit(repo, 'Add setup guide', '2026-01-10T12:00:00Z');
@@ -135,7 +139,7 @@ test('skips commits listed in the skip file', () => {
 	assert.equal(lookupFor(repo)('/guides/setup/'), '2026-02-01T12:00:00.000Z');
 });
 
-test('gives no lastmod to a page whose only commit is skipped', () => {
+gitTest('gives no lastmod to a page whose only commit is skipped', () => {
 	const repo = createRepo();
 	writePage(repo, 'imported.md');
 	const migration = commit(repo, 'Import pages from the old site', '2026-06-27T12:00:00Z');
@@ -144,7 +148,7 @@ test('gives no lastmod to a page whose only commit is skipped', () => {
 	assert.equal(lookupFor(repo)('/imported/'), undefined);
 });
 
-test('maps index pages to their directory and the root index to /', () => {
+gitTest('maps index pages to their directory and the root index to /', () => {
 	const repo = createRepo();
 	writePage(repo, 'index.mdx');
 	writePage(repo, 'guides/index.md');
@@ -155,7 +159,7 @@ test('maps index pages to their directory and the root index to /', () => {
 	assert.equal(lookup('/guides/'), '2026-03-03T08:00:00.000Z');
 });
 
-test('uses a slug set in frontmatter, as Astro does', () => {
+gitTest('uses a slug set in frontmatter, as Astro does', () => {
 	const repo = createRepo();
 	writePage(repo, 'old/name.md', "slug: 'guides/renamed'");
 	commit(repo, 'Add page', '2026-03-03T08:00:00Z');
@@ -165,7 +169,7 @@ test('uses a slug set in frontmatter, as Astro does', () => {
 	assert.equal(lookup('/old/name/'), undefined);
 });
 
-test('slugifies file names the way Astro builds page URLs', () => {
+gitTest('slugifies file names the way Astro builds page URLs', () => {
 	const repo = createRepo();
 	writePage(repo, 'Getting Started/First Steps.md');
 	commit(repo, 'Add page', '2026-03-03T08:00:00Z');
@@ -173,7 +177,7 @@ test('slugifies file names the way Astro builds page URLs', () => {
 	assert.equal(lookupFor(repo)('/getting-started/first-steps/'), '2026-03-03T08:00:00.000Z');
 });
 
-test('ignores files whose name starts with an underscore, which Starlight does not publish', () => {
+gitTest('ignores files whose name starts with an underscore, which Starlight does not publish', () => {
 	const repo = createRepo();
 	writePage(repo, '_partial.md');
 	commit(repo, 'Add partial', '2026-03-03T08:00:00Z');
@@ -181,7 +185,7 @@ test('ignores files whose name starts with an underscore, which Starlight does n
 	assert.equal(lookupFor(repo)('/_partial/'), undefined);
 });
 
-test('works when the site lives in a subdirectory of the repository', () => {
+gitTest('works when the site lives in a subdirectory of the repository', () => {
 	const repo = createRepo();
 	const siteRoot = join(repo, 'sites/docs');
 	writePage(siteRoot, 'guides/setup.md');
@@ -190,7 +194,7 @@ test('works when the site lives in a subdirectory of the repository', () => {
 	assert.equal(lookupFor(siteRoot)('/guides/setup/'), '2026-03-03T08:00:00.000Z');
 });
 
-test('strips a configured base from sitemap URLs', () => {
+gitTest('strips a configured base from sitemap URLs', () => {
 	const repo = createRepo();
 	writePage(repo, 'guides/setup.md');
 	commit(repo, 'Add setup guide', '2026-03-03T08:00:00Z');
@@ -198,7 +202,7 @@ test('strips a configured base from sitemap URLs', () => {
 	assert.equal(lookupFor(repo, { base: '/docs' })('/docs/guides/setup/'), '2026-03-03T08:00:00.000Z');
 });
 
-test('ignores git history in a shallow clone, where every file shares the checkout commit', () => {
+gitTest('ignores git history in a shallow clone, where every file shares the checkout commit', () => {
 	const repo = createRepo();
 	writePage(repo, 'dated.md', 'lastUpdated: 2026-01-05');
 	writePage(repo, 'undated.md');
@@ -217,6 +221,20 @@ test('ignores git history in a shallow clone, where every file shares the checko
 	assert.match(warnings[0], /shallow/i);
 });
 
+gitTest('falls back to frontmatter and warns once in a repository with no commits yet', () => {
+	const repo = createRepo();
+	writePage(repo, 'dated.md', 'lastUpdated: 2026-01-05');
+	writePage(repo, 'undated.md');
+	const warnings = [];
+
+	const lookup = createLastmodLookup({ siteRoot: repo, warn: (message) => warnings.push(message) });
+
+	assert.equal(lookup('/dated/'), '2026-01-05T00:00:00.000Z');
+	assert.equal(lookup('/undated/'), undefined);
+	assert.equal(warnings.length, 1);
+	assert.match(warnings[0], /no commits/i);
+});
+
 test('falls back to frontmatter and warns once when the site is not in a git repository', () => {
 	const siteRoot = makeTempDir();
 	writePage(siteRoot, 'dated.md', 'lastUpdated: 2026-01-05');
@@ -228,7 +246,7 @@ test('falls back to frontmatter and warns once when the site is not in a git rep
 	assert.equal(warnings.length, 1);
 });
 
-test('fails, naming the file, when lastUpdated is neither a date nor a boolean', () => {
+gitTest('fails, naming the file, when lastUpdated is neither a date nor a boolean', () => {
 	const repo = createRepo();
 	writePage(repo, 'broken.md', "lastUpdated: 'last Tuesday'");
 	commit(repo, 'Add page', '2026-03-03T08:00:00Z');
@@ -236,7 +254,7 @@ test('fails, naming the file, when lastUpdated is neither a date nor a boolean',
 	assert.throws(() => lookupFor(repo), /src\/content\/docs\/broken\.md/);
 });
 
-test('fails, naming the line, when the skip file holds something other than a full commit hash', () => {
+gitTest('fails, naming the line, when the skip file holds something other than a full commit hash', () => {
 	const repo = createRepo();
 	writePage(repo, 'page.md');
 	const sha = commit(repo, 'Add page', '2026-03-03T08:00:00Z');
@@ -246,7 +264,7 @@ test('fails, naming the line, when the skip file holds something other than a fu
 	assert.throws(() => lookupFor(repo), /line 1/);
 });
 
-test('the sitemap serializer adds lastmod to docs pages and leaves other entries alone', async () => {
+gitTest('the sitemap serializer adds lastmod to docs pages and leaves other entries alone', async () => {
 	const repo = createRepo();
 	writePage(repo, 'guides/setup.md');
 	commit(repo, 'Add setup guide', '2026-03-03T08:00:00Z');

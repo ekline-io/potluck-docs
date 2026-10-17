@@ -95,10 +95,11 @@ leaving it unconfigured, is what gets you a static-only build.
 
 ## Sitemap dates
 
-The sitemap gives each docs page a `<lastmod>`, which search engines use to
-decide what to recrawl. It is the page's `lastUpdated` frontmatter when that
-holds a date, otherwise the date of the last commit that changed the page's
-file. A page with neither gets no `<lastmod>`: a missing date is better than
+The sitemap can give each docs page a `<lastmod>`, which search engines use to
+decide what to recrawl. It is off by default: set `lastmodFromGit` to `true`
+in `src/config/sitemap.mjs` to turn it on. The date is the page's
+`lastUpdated` frontmatter when that holds a date, otherwise the date of the
+last commit that changed the page's file. A page with neither gets no `<lastmod>`: a missing date is better than
 a wrong one, and search engines stop trusting dates that claim changes that
 did not happen.
 
@@ -117,7 +118,6 @@ formatting pass, would date them all to that day. Put its full commit hash in
 `.sitemap-lastmod-ignore-revs` at the root of your site, one per line, with
 `#` for comments, and the sitemap skips it.
 
-To leave `<lastmod>` out of the sitemap entirely, set `lastmodFromGit` to
-`false` in `src/config/sitemap.mjs`. If you set `base` in `astro.config.mjs`,
+If you set `base` in `astro.config.mjs`,
 pass the same value to `createSitemapSerializer` in its `sitemap()` block, so
 sitemap URLs map back to their pages.

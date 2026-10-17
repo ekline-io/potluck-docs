@@ -68,7 +68,7 @@ Component overrides (Starlight's "Overriding Components" mechanism) go in `src/c
 
 ## Installed plugins
 
-- **`@astrojs/sitemap`** — emits `sitemap-index.xml` + `sitemap-0.xml` on build. Requires `site` to be set. Each docs page's `<lastmod>` comes from `src/lib/sitemap-lastmod.mjs`: its `lastUpdated` frontmatter date, otherwise the last commit that changed its file, otherwise none. It needs the build to see git history; on a shallow clone it logs a warning and uses frontmatter only. `src/config/sitemap.mjs` switches it off.
+- **`@astrojs/sitemap`** — emits `sitemap-index.xml` + `sitemap-0.xml` on build. Requires `site` to be set. Setting `lastmodFromGit` to `true` in `src/config/sitemap.mjs` gives each docs page a `<lastmod>` from `src/lib/sitemap-lastmod.mjs`: its `lastUpdated` frontmatter date, otherwise the last commit that changed its file, otherwise none. It is off by default. It needs the build to see git history; on a shallow clone it logs a warning and uses frontmatter only.
 - **`starlight-llms-txt`** — emits `/llms.txt`, `/llms-full.txt`, and `/llms-small.txt` on build for AI assistant consumption. Configure `projectName`, `description`, and optionally `customSets` / `promote` in `astro.config.mjs`. Docs: https://github.com/delucis/starlight-llms-txt
 - **`@scalar/astro`** — renders the API references declared in `src/config/api-reference.mjs`. This is an *Astro component*, not a Starlight plugin, so the routes are real pages under `src/pages/api/` and there is nothing in the `plugins` array. Shared config lives in `src/components/ScalarApiReference.astro`. Docs: https://scalar.com/products/api-references/integrations/astro
 
