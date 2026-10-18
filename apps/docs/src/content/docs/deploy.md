@@ -92,3 +92,11 @@ isn't a route onto a static-only host — `astro.config.mjs` picks an adapter
 regardless of whether these variables are set. Removing the feature, not
 leaving it unconfigured, is what gets you a static-only build.
 :::
+
+## Sitemap dates
+
+The sitemap can date every page from your git history, which needs the build
+to see that history. Vercel's own Git builds can't, so they leave the dates
+out. If you turn dates on, see
+[Give your build your git history](/sitemap/#give-your-build-your-git-history)
+for each target.
