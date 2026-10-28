@@ -1,10 +1,9 @@
 /**
  * Unit tests for the JSON-LD builders in `src/lib/structured-data.mjs`.
  *
- * The fixtures with `docs.ekline.io` URLs are a real site's hand-written
- * blocks, copied as they were before the generator replaced them: the
- * generator has to reproduce every `@id` in them exactly, or the site's
- * entities would silently split in two.
+ * The fixtures with `docs.acme.com` URLs have the shape of a site's
+ * hand-written blocks: a site that replaces its own blocks with generated ones
+ * needs every `@id` reproduced exactly, or its entities silently split in two.
  *
  * Run: node --test tests/structured-data.test.mjs
  */
@@ -18,7 +17,6 @@ import {
 	buildSiteGraph,
 	existingJsonLdTypes,
 	jsonLdHeadEntry,
-	siteLevelHead,
 	organizationIds,
 	pageUrlFor,
 	siteUrlFor,
@@ -26,19 +24,19 @@ import {
 } from '../src/lib/structured-data.mjs';
 import { isListedInSitemap } from '../src/lib/public-pages.mjs';
 
-const EKLINE_ORGANIZATION = {
-	name: 'EkLine',
-	url: 'https://ekline.io/',
+const ACME_ORGANIZATION = {
+	name: 'Acme',
+	url: 'https://acme.com/',
 	description:
-		'Streamline your documentation workflow with EkLine. Designed for software teams, our platform helps engineers, product managers and technical writers create, maintain, and optimize high-quality product, user, and API guides effortlessly.',
-	logo: 'https://ekline.io/assets/images/favicon/android-chrome-512x512.png',
-	sameAs: ['https://www.linkedin.com/company/ekline'],
+		'Acme builds tools for teams that ship software.',
+	logo: 'https://acme.com/logo.png',
+	sameAs: ['https://www.linkedin.com/company/acme'],
 	product: {
 		type: 'WebApplication',
-		name: 'EkLine',
+		name: 'Acme',
 		description:
-			'EkLine turns support conversations, engineering changes, and feature releases into accurate, self-serve documentation, automatically.',
-		url: 'https://ekline.io/',
+			'Acme Docs keeps product documentation in step with every release.',
+		url: 'https://acme.com/',
 		applicationCategory: 'DeveloperApplication',
 	},
 };
@@ -66,48 +64,48 @@ test('buildSiteGraph with no organization returns only a WebSite without publish
 	assert.equal('publisher' in graph[0], false);
 });
 
-test("buildSiteGraph reproduces docs.ekline.io's hand-written site graph", () => {
-	// The `@graph` from `structuredDataHead` in docs.ekline.io's astro.config.mjs, in its own order.
+test("buildSiteGraph reproduces a hand-written site graph", () => {
+	// A site-level `@graph` as a site would write it by hand, in its own order.
 	const handWritten = [
 		{
 			'@type': 'Organization',
-			'@id': 'https://ekline.io/#organization',
-			name: 'EkLine',
-			url: 'https://ekline.io/',
+			'@id': 'https://acme.com/#organization',
+			name: 'Acme',
+			url: 'https://acme.com/',
 			description:
-				'Streamline your documentation workflow with EkLine. Designed for software teams, our platform helps engineers, product managers and technical writers create, maintain, and optimize high-quality product, user, and API guides effortlessly.',
+				'Acme builds tools for teams that ship software.',
 			logo: {
 				'@type': 'ImageObject',
-				'@id': 'https://ekline.io/#logo',
-				url: 'https://ekline.io/assets/images/favicon/android-chrome-512x512.png',
+				'@id': 'https://acme.com/#logo',
+				url: 'https://acme.com/logo.png',
 			},
-			sameAs: ['https://www.linkedin.com/company/ekline'],
+			sameAs: ['https://www.linkedin.com/company/acme'],
 		},
 		{
 			'@type': 'WebSite',
-			'@id': 'https://docs.ekline.io/#website',
-			url: 'https://docs.ekline.io/',
-			name: 'EkLine Documentation',
-			publisher: { '@id': 'https://ekline.io/#organization' },
+			'@id': 'https://docs.acme.com/#website',
+			url: 'https://docs.acme.com/',
+			name: 'Acme Documentation',
+			publisher: { '@id': 'https://acme.com/#organization' },
 			inLanguage: 'en-US',
 		},
 		{
 			'@type': 'WebApplication',
-			'@id': 'https://ekline.io/#product',
-			name: 'EkLine',
+			'@id': 'https://acme.com/#product',
+			name: 'Acme',
 			description:
-				'EkLine turns support conversations, engineering changes, and feature releases into accurate, self-serve documentation, automatically.',
-			url: 'https://ekline.io/',
+				'Acme Docs keeps product documentation in step with every release.',
+			url: 'https://acme.com/',
 			applicationCategory: 'DeveloperApplication',
-			publisher: { '@id': 'https://ekline.io/#organization' },
+			publisher: { '@id': 'https://acme.com/#organization' },
 		},
 	];
 
 	const graph = buildSiteGraph({
-		siteUrl: 'https://docs.ekline.io/',
-		siteTitle: 'EkLine Documentation',
+		siteUrl: 'https://docs.acme.com/',
+		siteTitle: 'Acme Documentation',
 		lang: 'en-US',
-		organization: EKLINE_ORGANIZATION,
+		organization: ACME_ORGANIZATION,
 	});
 
 	// Node order inside `@graph` carries no meaning in JSON-LD; every node and every `@id` must match.
@@ -162,24 +160,24 @@ test('organizationIds uses the origin without a trailing slash', () => {
 /** @param {string} siteUrl */
 const urlsUnder = (siteUrl) => (/** @type {string} */ id) => (id ? `${siteUrl}${id}/` : siteUrl);
 
-test('breadcrumbTrail reproduces a docs.ekline.io trail', () => {
+test('breadcrumbTrail reproduces a hand-written trail', () => {
 	const pages = new Map([
-		['', { title: 'EkLine docs — …', sidebarLabel: 'Documentation' }],
+		['', { title: 'Acme docs — …', sidebarLabel: 'Documentation' }],
 		['reviewer/quickstart', { title: 'Run your first documentation review', sidebarLabel: 'Quickstart' }],
-		['reviewer/quickstart/vscode', { title: 'Set up EkLine Docs Reviewer in VS Code' }],
+		['reviewer/quickstart/vscode', { title: 'Set up Acme Docs in VS Code' }],
 	]);
 
 	const trail = breadcrumbTrail({
 		pageId: 'reviewer/quickstart/vscode',
-		siteTitle: 'EkLine Documentation',
+		siteTitle: 'Acme Documentation',
 		pages,
-		urlFor: urlsUnder('https://docs.ekline.io/'),
+		urlFor: urlsUnder('https://docs.acme.com/'),
 	});
 
 	assert.deepEqual(trail, [
-		{ name: 'Documentation', url: 'https://docs.ekline.io/' },
-		{ name: 'Quickstart', url: 'https://docs.ekline.io/reviewer/quickstart/' },
-		{ name: 'Set up EkLine Docs Reviewer in VS Code' },
+		{ name: 'Documentation', url: 'https://docs.acme.com/' },
+		{ name: 'Quickstart', url: 'https://docs.acme.com/reviewer/quickstart/' },
+		{ name: 'Set up Acme Docs in VS Code' },
 	]);
 });
 
@@ -292,39 +290,39 @@ test('breadcrumbTrail names the page it was asked about when that page is missin
 });
 
 const CREDIT_PAGE = {
-	pageUrl: 'https://docs.ekline.io/credit/',
-	siteUrl: 'https://docs.ekline.io/',
-	title: 'Add the "Powered by EkLine" credit',
+	pageUrl: 'https://docs.acme.com/credit/',
+	siteUrl: 'https://docs.acme.com/',
+	title: 'Add the "Powered by Acme" badge',
 	description:
-		'Embed the EkLine credit on your documentation site. Find the snippet for your framework and paste it.',
+		'Embed the Acme badge on your documentation site. Find the snippet for your framework and paste it.',
 	lang: 'en-US',
 	dateModified: '2026-10-05',
-	trail: [{ name: 'Documentation', url: 'https://docs.ekline.io/' }, { name: 'Add the "Powered by EkLine" credit' }],
-	organization: EKLINE_ORGANIZATION,
+	trail: [{ name: 'Documentation', url: 'https://docs.acme.com/' }, { name: 'Add the "Powered by Acme" badge' }],
+	organization: ACME_ORGANIZATION,
 };
 
-test('buildPageGraph matches a docs.ekline.io page', () => {
-	// The `@graph` written by hand into docs.ekline.io's credit/index.mdx frontmatter.
+test('buildPageGraph matches a hand-written page graph', () => {
+	// A page `@graph` as a site would write it by hand into the page's frontmatter.
 	const handWritten = [
 		{
 			'@type': 'TechArticle',
-			'@id': 'https://docs.ekline.io/credit/#article',
-			headline: 'Add the "Powered by EkLine" credit',
+			'@id': 'https://docs.acme.com/credit/#article',
+			headline: 'Add the "Powered by Acme" badge',
 			description:
-				'Embed the EkLine credit on your documentation site. Find the snippet for your framework and paste it.',
-			mainEntityOfPage: 'https://docs.ekline.io/credit/',
-			isPartOf: { '@id': 'https://docs.ekline.io/#website' },
-			about: { '@id': 'https://ekline.io/#product' },
-			publisher: { '@id': 'https://ekline.io/#organization' },
+				'Embed the Acme badge on your documentation site. Find the snippet for your framework and paste it.',
+			mainEntityOfPage: 'https://docs.acme.com/credit/',
+			isPartOf: { '@id': 'https://docs.acme.com/#website' },
+			about: { '@id': 'https://acme.com/#product' },
+			publisher: { '@id': 'https://acme.com/#organization' },
 			dateModified: '2026-10-05',
 			inLanguage: 'en-US',
 		},
 		{
 			'@type': 'BreadcrumbList',
-			'@id': 'https://docs.ekline.io/credit/#breadcrumb',
+			'@id': 'https://docs.acme.com/credit/#breadcrumb',
 			itemListElement: [
-				{ '@type': 'ListItem', position: 1, name: 'Documentation', item: 'https://docs.ekline.io/' },
-				{ '@type': 'ListItem', position: 2, name: 'Add the "Powered by EkLine" credit' },
+				{ '@type': 'ListItem', position: 1, name: 'Documentation', item: 'https://docs.acme.com/' },
+				{ '@type': 'ListItem', position: 2, name: 'Add the "Powered by Acme" badge' },
 			],
 		},
 	];
@@ -337,15 +335,15 @@ test('buildPageGraph with no organization has no about or publisher', () => {
 
 	assert.equal('about' in article, false);
 	assert.equal('publisher' in article, false);
-	assert.deepEqual(article.isPartOf, { '@id': 'https://docs.ekline.io/#website' });
+	assert.deepEqual(article.isPartOf, { '@id': 'https://docs.acme.com/#website' });
 });
 
 test('buildPageGraph with an organization but no product has a publisher and no about', () => {
-	const { product, ...company } = EKLINE_ORGANIZATION;
+	const { product, ...company } = ACME_ORGANIZATION;
 	const [article] = buildPageGraph({ ...CREDIT_PAGE, organization: company });
 
 	assert.equal('about' in article, false);
-	assert.deepEqual(article.publisher, { '@id': 'https://ekline.io/#organization' });
+	assert.deepEqual(article.publisher, { '@id': 'https://acme.com/#organization' });
 });
 
 test('buildPageGraph with no date has no dateModified', () => {
@@ -399,14 +397,6 @@ test('existingJsonLdTypes reads a script whose type has a parameter or other cas
 	assert.deepEqual(existingJsonLdTypes(head), new Set(['TechArticle', 'BreadcrumbList']));
 });
 
-test("siteLevelHead leaves out the page's own frontmatter entries", () => {
-	const fromConfig = ldScript(JSON.stringify({ '@type': 'WebSite' }));
-	const fromPage = ldScript(JSON.stringify({ '@type': 'Organization', name: 'A partner' }));
-	const head = [{ tag: 'meta', attrs: { charset: 'utf-8' } }, fromConfig, { ...fromPage }];
-
-	assert.deepEqual(existingJsonLdTypes(siteLevelHead(head, [fromPage])), new Set(['WebSite']));
-});
-
 const pageNodes = () => buildPageGraph(CREDIT_PAGE);
 
 test('ARTICLE_TYPES is the set a page article can be written as', () => {
@@ -424,10 +414,10 @@ test('withoutExisting drops TechArticle when a BlogPosting exists, keeps Breadcr
 
 test('withoutExisting drops WebSite when the config already has one', () => {
 	const siteNodes = buildSiteGraph({
-		siteUrl: 'https://docs.ekline.io/',
-		siteTitle: 'EkLine Documentation',
+		siteUrl: 'https://docs.acme.com/',
+		siteTitle: 'Acme Documentation',
 		lang: 'en',
-		organization: EKLINE_ORGANIZATION,
+		organization: ACME_ORGANIZATION,
 	});
 
 	const kept = withoutExisting(siteNodes, new Set(['WebSite']));

@@ -117,16 +117,20 @@ test('the sitemap and the content routes agree on page URLs', { skip: generatorO
 	assert.ok(contentPages === 0 || eligible.length > 0, 'no sitemap URL matched a docs page; check the URL shape');
 });
 
-// A page's own nodes count towards "has one", but only generated ones can be wrong:
-// judging the page's own blocks would fail a deploy over content the generator leaves alone.
-test('every eligible page has an article node and a BreadcrumbList, and at most one generated of each', { skip: generatorOff }, () => {
+// Where the generator added a kind, the page must have exactly one of it: a second is one the generator
+// should have skipped, such as a block in the page body it cannot see. Where the page wrote its own, its
+// count is the author's business, and judging it would fail a deploy over content the generator leaves alone.
+const exactlyOneWhereGenerated = (nodes, generated, isKind, kind) => {
+	if (generated.some(isKind)) return nodes.filter(isKind).length === 1 ? undefined : `${nodes.filter(isKind).length} ${kind}`;
+	return nodes.some(isKind) ? undefined : `no ${kind}`;
+};
+
+test('every eligible page has exactly one article node and one BreadcrumbList where they are generated', { skip: generatorOff }, () => {
 	const wrong = eligible.flatMap(({ path }) => {
 		const { all, generated } = pageNodes(htmlFor(path));
 		const problems = [
-			all.some(isArticle) ? undefined : 'no article node',
-			all.some(isBreadcrumb) ? undefined : 'no BreadcrumbList',
-			generated.filter(isArticle).length > 1 ? 'two generated article nodes' : undefined,
-			generated.filter(isBreadcrumb).length > 1 ? 'two generated BreadcrumbLists' : undefined,
+			exactlyOneWhereGenerated(all, generated, isArticle, 'article nodes'),
+			exactlyOneWhereGenerated(all, generated, isBreadcrumb, 'BreadcrumbLists'),
 		].filter(Boolean);
 		return problems.length ? [`${path}: ${problems.join(', ')}`] : [];
 	});

@@ -23,7 +23,6 @@ import {
 	existingJsonLdTypes,
 	jsonLdHeadEntry,
 	pageUrlFor,
-	siteLevelHead,
 	siteUrlFor,
 	withoutExisting,
 	type PageSummary,
@@ -61,12 +60,13 @@ export const onRequest = defineRouteMiddleware(async (context) => {
 	const siteEntry = jsonLdHeadEntry(
 		withoutExisting(
 			buildSiteGraph({ siteUrl, siteTitle: route.siteTitle, lang: route.lang, organization }),
-			existingJsonLdTypes(siteLevelHead(route.head, route.entry.data.head))
+			existing
 		)
 	);
 	if (siteEntry) route.head.push(siteEntry);
 
-	if (route.entry.data.template === 'splash') return;
+	// The sitemap leaves out error pages, so the page graph does too.
+	if (route.entry.data.template === 'splash' || route.id === '404' || route.id === '500') return;
 	const pages = await loadDocsPages();
 	const pageUrl = route.head.find(({ tag, attrs }) => tag === 'link' && attrs?.rel === 'canonical')?.attrs?.href;
 	// Pages Starlight renders from outside the collection, such as the API references, have no source file to date.

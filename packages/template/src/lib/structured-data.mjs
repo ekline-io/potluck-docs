@@ -217,23 +217,6 @@ const topLevelNodes = (value) => {
 const isJsonLdType = (type) => typeof type === 'string' && type.split(';')[0]?.trim().toLowerCase() === 'application/ld+json';
 
 /**
- * The head entries the site itself declares, without the page's own frontmatter
- * entries. The site-wide nodes are left out only for a block the site wrote: a
- * page marking up some other organization must not take away the one every
- * other node on the page points at.
- *
- * Starlight hands the middleware a copy of the head, so entries are matched by
- * tag and content, not identity.
- *
- * @template {{ tag: string, content?: string }} Entry
- * @param {Entry[]} head
- * @param {Array<{ tag: string, content?: string }>} frontmatterHead
- * @returns {Entry[]}
- */
-export const siteLevelHead = (head, frontmatterHead) =>
-	head.filter((entry) => !frontmatterHead.some(({ tag, content }) => tag === entry.tag && content === entry.content));
-
-/**
  * Every `@type` already declared by a JSON-LD script in the page's head, from
  * the site's config and the page's frontmatter alike.
  *

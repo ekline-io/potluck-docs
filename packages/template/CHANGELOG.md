@@ -33,8 +33,10 @@ edit a page, so delete them once you have this.
 
 **`dateModified` is the sitemap's date.** With `lastmodFromGit` on, each
 `TechArticle` carries the page's `<lastmod>`; with it off, or for a page the
-sitemap cannot date, it carries none. See
-<https://potluck.ekline.io/structured-data/>.
+sitemap cannot date, it carries none. If you set `base` and have git dates
+on, check that `astro.config.mjs` passes `base` to `createSitemapSerializer`,
+as 2.8.0 asked: without it your pages get dates the sitemap lacks, and
+`npm test` fails. See <https://potluck.ekline.io/structured-data/>.
 
 **What it adds to your build:** one pass over your docs collection for
 breadcrumb names. With git dates on, the same `git log` the sitemap runs, once

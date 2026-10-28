@@ -168,10 +168,11 @@ page whose date disagrees.
    the breadcrumb Google can show in results. To see every node, use the
    [Schema Markup Validator](https://validator.schema.org/).
 
-`npm test` also checks every build: each docs page has exactly one article
-and one breadcrumb, no generated node repeats an `@id` already on its page,
-the generated blocks are valid JSON, and each `dateModified` matches the
-sitemap.
+`npm test` also checks every build: each docs page that gets a generated
+article or breadcrumb has exactly one of it (a second usually means a block in
+the page body, which the generator cannot see; move it into the frontmatter
+`head`), no generated node repeats an `@id` already on its page, the generated
+blocks are valid JSON, and each `dateModified` matches the sitemap.
 
 ## Turn it off
 
