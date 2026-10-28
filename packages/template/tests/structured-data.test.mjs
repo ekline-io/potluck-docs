@@ -18,6 +18,7 @@ import {
 	buildSiteGraph,
 	existingJsonLdTypes,
 	jsonLdHeadEntry,
+	siteLevelHead,
 	organizationIds,
 	pageUrlFor,
 	siteUrlFor,
@@ -389,6 +390,23 @@ test('existingJsonLdTypes reads a top-level array of nodes and a script with no 
 	assert.deepEqual(existingJsonLdTypes(head), new Set(['Organization', 'WebSite', 'Thing']));
 });
 
+test('existingJsonLdTypes reads a script whose type has a parameter or other case', () => {
+	const head = [
+		{ tag: 'script', attrs: { type: 'application/ld+json; charset=utf-8' }, content: JSON.stringify({ '@type': 'TechArticle' }) },
+		{ tag: 'script', attrs: { type: 'Application/LD+JSON' }, content: JSON.stringify({ '@type': 'BreadcrumbList' }) },
+	];
+
+	assert.deepEqual(existingJsonLdTypes(head), new Set(['TechArticle', 'BreadcrumbList']));
+});
+
+test("siteLevelHead leaves out the page's own frontmatter entries", () => {
+	const fromConfig = ldScript(JSON.stringify({ '@type': 'WebSite' }));
+	const fromPage = ldScript(JSON.stringify({ '@type': 'Organization', name: 'A partner' }));
+	const head = [{ tag: 'meta', attrs: { charset: 'utf-8' } }, fromConfig, { ...fromPage }];
+
+	assert.deepEqual(existingJsonLdTypes(siteLevelHead(head, [fromPage])), new Set(['WebSite']));
+});
+
 const pageNodes = () => buildPageGraph(CREDIT_PAGE);
 
 test('ARTICLE_TYPES is the set a page article can be written as', () => {
@@ -454,6 +472,8 @@ test('jsonLdHeadEntry returns nothing for an empty list', () => {
 
 test('isListedInSitemap excludes /private/ at any depth and /demo-login, keeps /guides/demo-login-setup/', () => {
 	for (const pathname of [
+		'/private',
+		'/docs/private',
 		'/private/',
 		'/private/getting-started/',
 		'/private/orgs/acme/',
@@ -465,7 +485,7 @@ test('isListedInSitemap excludes /private/ at any depth and /demo-login, keeps /
 	]) {
 		assert.equal(isListedInSitemap(pathname), false, pathname);
 	}
-	for (const pathname of ['/', '/guides/demo-login-setup/', '/demo-login-help/', '/guides/private-beta/', '/api/']) {
+	for (const pathname of ['/', '/guides/demo-login-setup/', '/demo-login-help/', '/guides/private-beta/', '/privateer/', '/api/']) {
 		assert.equal(isListedInSitemap(pathname), true, pathname);
 	}
 });

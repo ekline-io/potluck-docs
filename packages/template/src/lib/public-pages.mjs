@@ -26,7 +26,9 @@
  * sitemap advertises unless told otherwise — the route-shape defence the
  * /private/ routes get for free does not exist here.
  *
- * `/private/` is a directory prefix: anything under it, at any depth.
+ * `/private` is a directory prefix: anything under it, at any depth, and the
+ * bare `/private` itself, which `trailingSlash: 'ignore'` or `'never'` serves
+ * through the private route.
  * `/demo-login` is a single leaf route, so it is anchored — a page at
  * /guides/demo-login-setup/ is not this route, and neither is a deployment
  * whose hostname happens to contain the string (both measured: an unanchored
@@ -45,4 +47,4 @@
  * @param {string} pathname A URL's path, `base` included when the site sets one.
  * @returns {boolean}
  */
-export const isListedInSitemap = (pathname) => !pathname.includes('/private/') && !/\/demo-login\/?$/.test(pathname);
+export const isListedInSitemap = (pathname) => !/\/private(\/|$)/.test(pathname) && !/\/demo-login\/?$/.test(pathname);

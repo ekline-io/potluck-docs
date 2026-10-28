@@ -107,14 +107,28 @@ const docsPagesInSitemap = sitemapEntries
 const eligible = docsPagesInSitemap.filter(({ file }) => !isSplash(file));
 const splash = docsPagesInSitemap.filter(({ file }) => isSplash(file));
 
-test('every eligible page has one article node and one BreadcrumbList', { skip: generatorOff }, () => {
-	assert.ok(sitemapEntries.length > 0, 'no sitemap entries found; did the build run?');
+const isArticle = (node) => typesOf(node).some((type) => ARTICLE_TYPES.includes(type));
+const isBreadcrumb = (node) => typesOf(node).includes('BreadcrumbList');
 
+test('the sitemap and the content routes agree on page URLs', { skip: generatorOff }, () => {
+	assert.ok(sitemapEntries.length > 0, 'no sitemap entries found; did the build run?');
+	// Without this, a URL shape the route matching does not know would leave every per-page test checking nothing.
+	const contentPages = [...ROUTES.values()].filter((file) => !isSplash(file)).length;
+	assert.ok(contentPages === 0 || eligible.length > 0, 'no sitemap URL matched a docs page; check the URL shape');
+});
+
+// A page's own nodes count towards "has one", but only generated ones can be wrong:
+// judging the page's own blocks would fail a deploy over content the generator leaves alone.
+test('every eligible page has an article node and a BreadcrumbList, and at most one generated of each', { skip: generatorOff }, () => {
 	const wrong = eligible.flatMap(({ path }) => {
-		const { all } = pageNodes(htmlFor(path));
-		const articles = all.filter((node) => typesOf(node).some((type) => ARTICLE_TYPES.includes(type))).length;
-		const breadcrumbs = all.filter((node) => typesOf(node).includes('BreadcrumbList')).length;
-		return articles === 1 && breadcrumbs === 1 ? [] : [`${path}: ${articles} article nodes, ${breadcrumbs} BreadcrumbList`];
+		const { all, generated } = pageNodes(htmlFor(path));
+		const problems = [
+			all.some(isArticle) ? undefined : 'no article node',
+			all.some(isBreadcrumb) ? undefined : 'no BreadcrumbList',
+			generated.filter(isArticle).length > 1 ? 'two generated article nodes' : undefined,
+			generated.filter(isBreadcrumb).length > 1 ? 'two generated BreadcrumbLists' : undefined,
+		].filter(Boolean);
+		return problems.length ? [`${path}: ${problems.join(', ')}`] : [];
 	});
 
 	assert.deepEqual(wrong, []);

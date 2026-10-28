@@ -23,6 +23,7 @@ import {
 	existingJsonLdTypes,
 	jsonLdHeadEntry,
 	pageUrlFor,
+	siteLevelHead,
 	siteUrlFor,
 	withoutExisting,
 	type PageSummary,
@@ -58,7 +59,10 @@ export const onRequest = defineRouteMiddleware(async (context) => {
 	const siteUrl = siteUrlFor(context.site, import.meta.env.BASE_URL);
 
 	const siteEntry = jsonLdHeadEntry(
-		withoutExisting(buildSiteGraph({ siteUrl, siteTitle: route.siteTitle, lang: route.lang, organization }), existing)
+		withoutExisting(
+			buildSiteGraph({ siteUrl, siteTitle: route.siteTitle, lang: route.lang, organization }),
+			existingJsonLdTypes(siteLevelHead(route.head, route.entry.data.head))
+		)
 	);
 	if (siteEntry) route.head.push(siteEntry);
 
