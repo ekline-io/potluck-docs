@@ -64,7 +64,7 @@ it no longer needs:
    `adapter: process.env.VERCEL ? vercel() : undefined`, and remove the
    `env:` block, the `@astrojs/node` import, the `ssoConfigured` line and its use in the
    `sidebar` array, the three `DOCS_SSO_*` names from the `loadEnv`
-   destructure, and the sitemap `filter`.
+   destructure, and the sitemap `filter` with its `isListedInSitemap` import.
 
    :::caution
    Keep the `loadEnv` call itself. It also supplies `DOCS_SITE_URL`, which

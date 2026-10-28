@@ -8,6 +8,53 @@ The template is something you fork rather than install, so a new version is not
 something you upgrade into. Use these notes to decide whether a change is worth
 pulling across into a site you have already customised.
 
+## 2.9.0
+
+### Every page describes itself to search engines with generated JSON-LD
+
+Each build now adds structured data to every public page's `<head>`: a
+`WebSite` node for your docs site and, on every page in `src/content/docs/`
+that is not a splash page, a `TechArticle` and a `BreadcrumbList`. They are
+built from the page's own title, description and URL, so they stay right when
+you edit the page. Search engines and AI answer engines read them to learn
+what a page is and where it sits on your site.
+
+**It is on by default.** The company and product settings in the new
+`src/config/structured-data.mjs` ship empty, so until you fill them in no
+company or product is named anywhere. Set `generateStructuredData` to `false`
+in that file to turn it off.
+
+**A page's own block wins.** A page or config `head` that already carries a
+`TechArticle` (or `Article`, `BlogPosting`, `NewsArticle`), a
+`BreadcrumbList`, a `WebSite`, an `Organization` or a node of your product's
+type keeps it, and the generated one of that kind is left out. `FAQPage` and other types are never
+affected. Hand-written article and breadcrumb blocks are not updated when you
+edit a page, so delete them once you have this.
+
+**`dateModified` is the sitemap's date.** With `lastmodFromGit` on, each
+`TechArticle` carries the page's `<lastmod>`; with it off, or for a page the
+sitemap cannot date, it carries none. See
+<https://potluck.ekline.io/structured-data/>.
+
+**What it adds to your build:** one pass over your docs collection for
+breadcrumb names. With git dates on, the same `git log` the sitemap runs, once
+more. A company website in the settings that is not a full `http(s)` URL fails
+the build and names the file.
+
+**What to pull across:** `src/config/structured-data.mjs`,
+`src/lib/structured-data.mjs`, `src/lib/public-pages.mjs`,
+`src/structured-data-middleware.ts`, `tests/structured-data.test.mjs`,
+`tests/structured-data-build.test.mjs`, and `tests/scalar-api-reference.test.mjs`
+(it now ignores JSON-LD when it reads the document URL Scalar was given; the
+old version fails once a `WebSite` node adds a `url` of its own). In
+`astro.config.mjs`, two edits: add
+`routeMiddleware: ['./src/structured-data-middleware.ts']` to the
+`starlight()` call (add it to your list if you already have route
+middleware), and replace the sitemap `filter` with
+`filter: (page) => isListedInSitemap(new URL(page).pathname)` plus its
+import, so the sitemap and the structured data agree on which pages are
+public.
+
 ## 2.8.0
 
 ### Sitemap entries can get a `<lastmod>` from each page's git history

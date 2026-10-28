@@ -32,6 +32,7 @@ export const docsSidebarGroups = [
 			{ label: 'Writing content', slug: 'writing-content' },
 			{ label: 'Search and AI', slug: 'search-and-ai' },
 			{ label: 'Sitemap', slug: 'sitemap' },
+			{ label: 'Structured data', slug: 'structured-data' },
 		],
 	},
 	{
