@@ -36,6 +36,32 @@ export const organizationIds = (organization) => {
 };
 
 /**
+ * @param {URL | string} site Astro's `site`.
+ * @param {string} base Astro's `base`, with or without a trailing slash.
+ * @returns {string} The site's URL with `base` and a trailing slash, the root every `@id` here hangs from.
+ */
+export const siteUrlFor = (site, base) => new URL(base.endsWith('/') ? base : `${base}/`, site).href;
+
+/**
+ * A docs page's URL in the shape Starlight gives its canonical link: Astro's
+ * build URL for the page, with the trailing slash `trailingSlash` asks for.
+ * A breadcrumb that linked a parent by any other spelling would name a
+ * different URL from the one that page calls itself.
+ *
+ * @param {object} options
+ * @param {string} options.siteUrl The site's URL with `base` and a trailing slash.
+ * @param {'file' | 'directory' | 'preserve'} options.format Astro's `build.format`.
+ * @param {'always' | 'never' | 'ignore'} options.trailingSlash Astro's `trailingSlash`.
+ * @param {string} options.id Starlight's route id: `''` for the root.
+ * @returns {string}
+ */
+export const pageUrlFor = ({ siteUrl, format, trailingSlash, id }) => {
+	if (format === 'file') return new URL(id ? `${id}.html` : 'index.html', siteUrl).href;
+	const href = new URL(id ? `${id}/` : '', siteUrl).href;
+	return trailingSlash === 'never' ? href.replace(/\/$/, '') : href;
+};
+
+/**
  * The nodes every page carries: the site, and the company and product behind
  * it when they are set.
  *

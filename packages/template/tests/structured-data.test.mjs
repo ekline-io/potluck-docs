@@ -19,8 +19,11 @@ import {
 	existingJsonLdTypes,
 	jsonLdHeadEntry,
 	organizationIds,
+	pageUrlFor,
+	siteUrlFor,
 	withoutExisting,
 } from '../src/lib/structured-data.mjs';
+import { isListedInSitemap } from '../src/lib/public-pages.mjs';
 
 const EKLINE_ORGANIZATION = {
 	name: 'EkLine',
@@ -447,4 +450,46 @@ test('jsonLdHeadEntry keeps a quote in a title inside one valid string', () => {
 
 test('jsonLdHeadEntry returns nothing for an empty list', () => {
 	assert.equal(jsonLdHeadEntry([]), undefined);
+});
+
+test('isListedInSitemap excludes /private/ at any depth and /demo-login, keeps /guides/demo-login-setup/', () => {
+	for (const pathname of [
+		'/private/',
+		'/private/getting-started/',
+		'/private/orgs/acme/',
+		'/docs/private/getting-started/',
+		'/demo-login',
+		'/demo-login/',
+		'/docs/demo-login/',
+		'/guides/demo-login/',
+	]) {
+		assert.equal(isListedInSitemap(pathname), false, pathname);
+	}
+	for (const pathname of ['/', '/guides/demo-login-setup/', '/demo-login-help/', '/guides/private-beta/', '/api/']) {
+		assert.equal(isListedInSitemap(pathname), true, pathname);
+	}
+});
+
+test('siteUrlFor keeps a base path and always ends in a slash', () => {
+	assert.equal(siteUrlFor(new URL('https://docs.example.com'), '/'), 'https://docs.example.com/');
+	assert.equal(siteUrlFor(new URL('https://example.com'), '/docs'), 'https://example.com/docs/');
+	assert.equal(siteUrlFor(new URL('https://example.com/'), '/docs/'), 'https://example.com/docs/');
+});
+
+test("pageUrlFor gives a page the shape of Starlight's canonical link", () => {
+	const directory = { siteUrl: 'https://example.com/docs/', format: /** @type {const} */ ('directory') };
+
+	assert.equal(pageUrlFor({ ...directory, trailingSlash: 'ignore', id: '' }), 'https://example.com/docs/');
+	assert.equal(pageUrlFor({ ...directory, trailingSlash: 'ignore', id: 'guides' }), 'https://example.com/docs/guides/');
+	assert.equal(pageUrlFor({ ...directory, trailingSlash: 'always', id: 'a/b' }), 'https://example.com/docs/a/b/');
+	assert.equal(pageUrlFor({ ...directory, trailingSlash: 'never', id: 'guides' }), 'https://example.com/docs/guides');
+	assert.equal(pageUrlFor({ ...directory, trailingSlash: 'never', id: '' }), 'https://example.com/docs');
+	assert.equal(
+		pageUrlFor({ siteUrl: 'https://example.com/', format: 'file', trailingSlash: 'ignore', id: 'guides/setup' }),
+		'https://example.com/guides/setup.html',
+	);
+	assert.equal(
+		pageUrlFor({ siteUrl: 'https://example.com/', format: 'file', trailingSlash: 'ignore', id: '' }),
+		'https://example.com/index.html',
+	);
 });

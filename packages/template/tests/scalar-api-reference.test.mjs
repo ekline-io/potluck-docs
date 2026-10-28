@@ -91,7 +91,11 @@ test('every reference points at its own document', () => {
 	// easy to introduce when copying an entry in the config, and invisible until
 	// someone reads the page.
 	for (const reference of enabledReferences) {
-		const html = unescapeQuotes(readFileSync(htmlFor(reference), 'utf-8'));
+		// JSON-LD in the head has `"url"` keys of its own (the site's, a company's), and is not Scalar's config.
+		const html = unescapeQuotes(readFileSync(htmlFor(reference), 'utf-8')).replace(
+			/<script\b[^>]*\btype=["']?application\/ld\+json[^>]*>[\s\S]*?<\/script>/g,
+			''
+		);
 		const url = specUrlFor(reference);
 		// Read the value Scalar was actually configured with, rather than asking
 		// whether the page contains that string anywhere. A bare
