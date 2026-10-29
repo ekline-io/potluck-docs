@@ -40,8 +40,8 @@ as 2.8.0 asked: without it your pages get dates the sitemap lacks, and
 
 **What it adds to your build:** one pass over your docs collection for
 breadcrumb names. With git dates on, the same `git log` the sitemap runs, once
-more. A company website in the settings that is not a full `http(s)` URL fails
-the build and names the file.
+more. A company or product website in the settings that is not a full
+`http(s)` URL fails the build and names the file.
 
 **What to pull across:** `src/config/structured-data.mjs`,
 `src/lib/structured-data.mjs`, `src/lib/public-pages.mjs`,

@@ -22,16 +22,50 @@
  */
 const withoutUndefined = (node) => Object.fromEntries(Object.entries(node).filter(([, value]) => value !== undefined));
 
+/** @param {unknown} value */
+const isWebAddress = (value) => {
+	try {
+		return ['http:', 'https:'].includes(new URL(/** @type {string} */ (value)).protocol);
+	} catch {
+		return false;
+	}
+};
+
 /**
+ * Throws, naming the settings file and the field, when an address in the
+ * settings is not an absolute http(s) URL: every identity is built from them.
+ *
+ * @param {Organization} organization
+ */
+export const checkOrganization = (organization) => {
+	/** @type {Array<[string, unknown]>} */
+	const addresses = [['organization.url', organization.url]];
+	if (organization.product?.url !== undefined) addresses.push(['organization.product.url', organization.product.url]);
+	for (const [field, value] of addresses) {
+		if (!isWebAddress(value)) {
+			throw new Error(
+				`src/config/structured-data.mjs: ${field} is ${JSON.stringify(value)}, but must be an absolute http(s) URL`
+			);
+		}
+	}
+};
+
+/**
+ * A product's identity is its own address, so a company with a docs site per
+ * product names each one separately; a product without an address takes the
+ * company's website.
+ *
  * @param {Organization} organization
  * @returns {{ organization: string, logo: string, product: string }}
  */
 export const organizationIds = (organization) => {
 	const { origin } = new URL(organization.url);
+	const productAddress = organization.product?.url ? new URL(organization.product.url) : new URL(`${origin}/`);
+	productAddress.hash = '';
 	return {
 		organization: `${origin}/#organization`,
 		logo: `${origin}/#logo`,
-		product: `${origin}/#product`,
+		product: `${productAddress.href}#product`,
 	};
 };
 

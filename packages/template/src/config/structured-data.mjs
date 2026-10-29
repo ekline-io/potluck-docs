@@ -34,10 +34,13 @@
  *     	},
  *     };
  *
- * The product sits inside the organization because its identity is built from
- * the organization's website (`https://acme.com/#product`), so a product
- * without a company would have none.
+ * The product sits inside the organization because the company publishes it.
+ * Its identity is its own `url` plus `#product` (`https://acme.com/rocket/#product`),
+ * so a company with a docs site per product names each one; a product with no
+ * `url` takes the company's website (`https://acme.com/#product`).
  */
+
+import { checkOrganization } from '../lib/structured-data.mjs';
 
 export const generateStructuredData = true;
 
@@ -63,20 +66,7 @@ export const generateStructuredData = true;
 /** @type {Organization | undefined} */
 export const organization = undefined;
 
-/* Validated at module load, like `src/config/theme.mjs`, so a mistyped website
+/* Checked at module load, like `src/config/theme.mjs`, so a mistyped address
  * fails the build with a sentence naming this file instead of shipping broken
  * identities on every page. */
-if (organization) {
-	const { url } = /** @type {Organization} */ (organization);
-	let protocol;
-	try {
-		({ protocol } = new URL(url));
-	} catch {
-		protocol = undefined;
-	}
-	if (protocol !== 'http:' && protocol !== 'https:') {
-		throw new Error(
-			`src/config/structured-data.mjs: organization.url is ${JSON.stringify(url)}, but must be an absolute http(s) URL`
-		);
-	}
-}
+if (organization) checkOrganization(/** @type {Organization} */ (organization));

@@ -17,6 +17,7 @@ import {
 	buildSiteGraph,
 	existingJsonLdTypes,
 	jsonLdHeadEntry,
+	checkOrganization,
 	organizationIds,
 	pageUrlFor,
 	siteUrlFor,
@@ -155,6 +156,34 @@ test('organizationIds uses the origin without a trailing slash', () => {
 		logo: 'https://acme.com/#logo',
 		product: 'https://acme.com/#product',
 	});
+});
+
+test('organizationIds gives each product with a url an identity of its own', () => {
+	const company = { name: 'Acme', url: 'https://acme.com/' };
+	const rocket = organizationIds({ ...company, product: { type: 'SoftwareApplication', name: 'Rocket', url: 'https://acme.com/rocket/' } });
+	const anvil = organizationIds({ ...company, product: { type: 'SoftwareApplication', name: 'Anvil', url: 'https://anvil.acme.com/#top' } });
+
+	assert.equal(rocket.product, 'https://acme.com/rocket/#product');
+	assert.equal(anvil.product, 'https://anvil.acme.com/#product');
+	assert.equal(rocket.organization, anvil.organization);
+});
+
+test('organizationIds gives a product with no url the company website', () => {
+	const ids = organizationIds({ name: 'Acme', url: 'https://acme.com/about', product: { type: 'Product', name: 'Rocket' } });
+
+	assert.equal(ids.product, 'https://acme.com/#product');
+});
+
+test('checkOrganization names the field that is not an absolute http(s) URL', () => {
+	assert.throws(
+		() => checkOrganization({ name: 'Acme', url: 'acme.com' }),
+		{ message: 'src/config/structured-data.mjs: organization.url is "acme.com", but must be an absolute http(s) URL' },
+	);
+	assert.throws(
+		() => checkOrganization({ name: 'Acme', url: 'https://acme.com/', product: { type: 'Product', name: 'Rocket', url: 'ftp://acme.com/rocket' } }),
+		{ message: 'src/config/structured-data.mjs: organization.product.url is "ftp://acme.com/rocket", but must be an absolute http(s) URL' },
+	);
+	assert.doesNotThrow(() => checkOrganization({ name: 'Acme', url: 'https://acme.com/', product: { type: 'Product', name: 'Rocket' } }));
 });
 
 /** @param {string} siteUrl */

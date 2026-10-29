@@ -72,16 +72,19 @@ for your product, and each page's `TechArticle` names your company as its
 `publisher` and your product as what it is `about`.
 
 The company needs `name` and `url`; the product needs `type` and `name`.
-Leave any other field out and it's left out of the data. The company's `url`
-must be your website's full address, `https://` included, or the build stops:
+Leave any other field out and it's left out of the data. The company's `url`,
+and the product's if you set one, must be a full address, `https://`
+included, or the build stops:
 
 ```text
 src/config/structured-data.mjs: organization.url is "acme.com", but must be an absolute http(s) URL
 ```
 
-`product` sits inside `organization` on purpose. Its identity is built from
-your company's website — `https://acme.com/#product` — so a product with no
-company has none. For `type`, use the schema.org type that fits:
+`product` sits inside `organization` because your company publishes it. Its
+identity is its own `url` plus `#product` — `https://acme.com/rocket/#product`
+here — so if you run a docs site for each of several products, each names its
+own. A product with no `url` takes your company's website instead:
+`https://acme.com/#product`. For `type`, use the schema.org type that fits:
 `SoftwareApplication`, `WebApplication`, `MobileApplication`, or `Product`.
 
 ## A page's own block wins
