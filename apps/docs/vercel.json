@@ -1,4 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run check && npm test"
+  "buildCommand": "sh scripts/fetch-git-history.sh && npm run check && npm test"
 }
