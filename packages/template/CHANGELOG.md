@@ -45,7 +45,8 @@ more. A company or product website in the settings that is not a full
 
 **What to pull across:** `src/config/structured-data.mjs`,
 `src/lib/structured-data.mjs`, `src/lib/public-pages.mjs`,
-`src/structured-data-middleware.ts`, `tests/structured-data.test.mjs`,
+`src/lib/structured-data-middleware.mjs`, `src/structured-data-middleware.ts`,
+`tests/structured-data.test.mjs`,
 `tests/structured-data-build.test.mjs`, and `tests/scalar-api-reference.test.mjs`
 (it now ignores JSON-LD when it reads the document URL Scalar was given; the
 old version fails once a `WebSite` node adds a `url` of its own). In
