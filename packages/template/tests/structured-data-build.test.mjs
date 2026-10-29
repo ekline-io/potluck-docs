@@ -59,8 +59,8 @@ const htmlFor = (path) => {
  * @returns {Array<{ generated: boolean, content: string }>}
  */
 const jsonLdScripts = (html) =>
-	[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)]
-		.filter(([, attrs = '']) => /\btype=["']?application\/ld\+json/.test(attrs))
+	[...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script[^>]*>/gi)]
+		.filter(([, attrs = '']) => /\btype=["']?application\/ld\+json/i.test(attrs))
 		.map(([, attrs = '', content = '']) => ({ generated: /\bdata-generated=["']?structured-data/.test(attrs), content }));
 
 /**
