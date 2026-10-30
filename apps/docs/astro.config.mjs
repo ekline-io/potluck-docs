@@ -1,4 +1,5 @@
 // @ts-check
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import sitemap from '@astrojs/sitemap';
@@ -11,7 +12,9 @@ import vercel from '@astrojs/vercel';
 // shipped to anyone, so the cross-directory import that would be wrong inside
 // `packages/template` is the right shape here.
 import vercelMarkdownNegotiation from '../../packages/template/src/lib/vercel-markdown-negotiation.mjs';
+import { createSitemapSerializer } from '../../packages/template/src/lib/sitemap-lastmod.mjs';
 import { docsSidebarGroups } from './src/config/sidebar.mjs';
+import { lastmodFromGit } from './src/config/sitemap.mjs';
 
 // https://astro.build/config
 export default defineConfig({
@@ -36,7 +39,19 @@ export default defineConfig({
 	// built.
 	adapter: process.env.VERCEL ? vercel() : undefined,
 	integrations: [
-		sitemap(),
+		// Each docs page's `<lastmod>`, from its `lastUpdated` frontmatter or its
+		// git history, as the template does (`src/config/sitemap.mjs`). No
+		// filter: this site has no private pages.
+		sitemap(
+			lastmodFromGit
+				? {
+						serialize: createSitemapSerializer({
+							siteRoot: fileURLToPath(new URL('.', import.meta.url)),
+							warn: (message) => console.warn(message),
+						}),
+					}
+				: {}
+		),
 		starlight({
 			title: 'Potluck Docs',
 			// Two files, not one. The mark's well is paper on light and ink on
@@ -59,6 +74,9 @@ export default defineConfig({
 				},
 			],
 			customCss: ['./src/styles/global.css'],
+			// JSON-LD in each page's head, as the template adds it. Settings are in
+			// `src/config/structured-data.mjs`.
+			routeMiddleware: ['./src/structured-data-middleware.ts'],
 			components: {
 				Head: './src/components/CustomHead.astro',
 				Header: './src/components/CustomHeader.astro',

@@ -92,6 +92,11 @@ test('every reference points at its own document', () => {
 	// someone reads the page.
 	for (const reference of enabledReferences) {
 		const html = unescapeQuotes(readFileSync(htmlFor(reference), 'utf-8'));
+		// JSON-LD in the head has `"url"` keys of its own (the site's, a company's), and is not Scalar's config.
+		const jsonLd = [...html.matchAll(/<script\b[^>]*\btype=["']?application\/ld\+json[^>]*>[\s\S]*?<\/script[^>]*>/gi)].map(
+			({ index, 0: script }) => [index, index + script.length]
+		);
+		const outsideJsonLd = ({ index }) => !jsonLd.some(([start, end]) => index >= start && index < end);
 		const url = specUrlFor(reference);
 		// Read the value Scalar was actually configured with, rather than asking
 		// whether the page contains that string anywhere. A bare
@@ -106,7 +111,7 @@ test('every reference points at its own document', () => {
 		// for what this test is for — catching a reference wired to another
 		// reference's document — because the derived paths differ in their last
 		// segment.
-		const configured = [...html.matchAll(/"url":"([^"]*?)"/g)].map((match) => match[1]);
+		const configured = [...html.matchAll(/"url":"([^"]*?)"/g)].filter(outsideJsonLd).map((match) => match[1]);
 		assert.equal(
 			configured.length,
 			1,

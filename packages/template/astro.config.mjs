@@ -19,6 +19,7 @@ import {
 import { docsSidebarGroups, changelogEntry, privateDocsLink } from './src/config/sidebar.mjs';
 import { lastmodFromGit } from './src/config/sitemap.mjs';
 import { createSitemapSerializer } from './src/lib/sitemap-lastmod.mjs';
+import { isListedInSitemap } from './src/lib/public-pages.mjs';
 import vercelMarkdownNegotiation from './src/lib/vercel-markdown-negotiation.mjs';
 
 // Is signing in configured for this deployment?
@@ -126,48 +127,16 @@ export default defineConfig({
 		mermaid({
 			autoTheme: true,
 		}),
-		// Sitemaps advertise URLs to crawlers, and nothing under /private/ should
-		// be advertised: reaching it needs a session, so a crawler can only ever
-		// collect a redirect, and the URL itself names an org.
-		//
-		// This is not belt-and-braces. `@astrojs/sitemap` never consults
-		// `isPrerendered` — its only filters are `type !== 'page'` and a defined
-		// `pathname`, and `pathname` is undefined for `[dynamic]` and `[...spread]`
-		// routes. So an on-demand route is listed like any other unless it happens
-		// to be dynamic. Every route this template puts under /private/ is a spread
-		// route, which is why nothing leaked before this line existed; adding one
-		// plain `src/pages/private/welcome.astro` would publish it. Measured twice
-		// on real builds, not inferred. See wiki/private-docs.md.
-		//
-		// /demo-login is filtered for the same reason with one difference: it is a
-		// *static* pathname (`src/pages/demo-login.astro`), exactly the shape the
-		// sitemap advertises unless told otherwise — the route-shape defence the
-		// /private/ routes get for free does not exist here.
-		//
-		// `/private/` is a directory prefix: anything under it, at any depth.
-		// `/demo-login` is a single leaf route, so it is anchored — a customer
-		// page at /guides/demo-login-setup/ is not this route, and neither is a
-		// deployment whose hostname happens to contain the string (both measured:
-		// an unanchored `.includes('/demo-login')` matches both). A page named
-		// exactly `demo-login` nested anywhere else *is* excluded — the accepted
-		// price of letting a `base` prefix sit in front of the route, since
-		// /docs/demo-login/ and /guides/demo-login/ are indistinguishable without
-		// teaching this filter about `base`.
-		//
-		// Not anchored on a trailing slash either: whether one is emitted depends
-		// on `build.format` / `trailingSlash`, which a fork may change. Measured
-		// under `trailingSlash: 'never'` the build emits `/demo-login` bare, so a
-		// slash-anchored filter would publish the route rather than merely
-		// mis-filter a page.
+		// Leaves out what this site must not advertise: everything under /private/,
+		// and /demo-login. The rule, and why each part of it is shaped as it is,
+		// lives in `src/lib/public-pages.mjs`, shared with the structured data
+		// middleware so the two cannot disagree.
 		//
 		// `page` is always an absolute, URL-validated href — route and page URLs
 		// are built with `new URL`, and `customPages` is `z.url()`-checked by the
 		// integration before the filter runs — so `new URL` cannot throw here.
 		sitemap({
-			filter: (page) => {
-				const { pathname } = new URL(page);
-				return !pathname.includes('/private/') && !/\/demo-login\/?$/.test(pathname);
-			},
+			filter: (page) => isListedInSitemap(new URL(page).pathname),
 			// Each docs page's `<lastmod>`, from its `lastUpdated` frontmatter or its
 			// git history; `src/config/sitemap.mjs` switches it off. Pass `base` here
 			// if you set one above, so sitemap URLs map back to their pages.
@@ -194,6 +163,11 @@ export default defineConfig({
 				},
 			],
 			customCss: ['./src/styles/global.css'],
+			// Adds JSON-LD to each page's head: a `WebSite` everywhere, and a
+			// `TechArticle` and `BreadcrumbList` on docs pages. Settings, and the switch
+			// that turns it off, are in `src/config/structured-data.mjs`. A list, so
+			// your own route middleware can sit alongside it.
+			routeMiddleware: ['./src/structured-data-middleware.ts'],
 			components: {
 				Head: './src/components/CustomHead.astro',
 				Header: './src/components/CustomHeader.astro',
