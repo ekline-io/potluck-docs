@@ -33,6 +33,17 @@ template is right — fix the doc.
 - `src/loaders/wiki.mjs` reads `../../packages/template/wiki` from **outside**
   this app's root, on purpose. Do not "fix" it into a copy step: one copy of
   those files, beside the code they describe, is the whole design.
+- Sitemap dates and JSON-LD are the template's code, imported across the repo
+  (`astro.config.mjs`, `src/structured-data-middleware.ts`), with this site's
+  settings in `src/config/sitemap.mjs` and `src/config/structured-data.mjs`.
+  A template file imported here may import only Node built-ins, Astro's
+  virtual modules and other template files: Vercel installs this app's
+  packages only, so a package import resolves on your machine and fails there.
+- The dates need git history. Vercel's clone is shallow, so the build command
+  in `vercel.json` runs `scripts/fetch-git-history.sh` first, which fetches the
+  rest from GitHub. That needs no token only because the repository is public.
+  `tests/structured-data.test.mjs` fails a build that has the history but no
+  dates.
 - Independent project — its own `package.json` and its own committed
   `package-lock.json`. There is no npm workspace in this repo, deliberately;
   see the root `CLAUDE.md` for why, and do not add one.
